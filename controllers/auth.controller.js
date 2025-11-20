@@ -3,16 +3,8 @@ import jwt from "jsonwebtoken";
 import Student from "../models/user.model.js";
 import Teacher from "../models/teacher.model.js";
 import Admin from "../models/admin.model.js"; // optional future admin
+import { generateToken } from "../lib/utils.js";
 
-
-// 🧩 Helper Function
-const generateToken = (user) => {
-    return jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-    );
-};
 
 
 // 🧱 SIGNUP CONTROLLER
@@ -38,7 +30,6 @@ export const signup = async (req, res) => {
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
-
             const newStudent = await Student.create({
                 name,
                 phone,
@@ -47,7 +38,8 @@ export const signup = async (req, res) => {
                 password: hashedPassword,
             });
 
-            const token = generateToken(newStudent);
+            // const token = generateToken(newStudent);
+            const token = generateToken(newStudent._id, res);
 
             return res.status(201).json({
                 message: "Student signup successful",
@@ -85,7 +77,9 @@ export const signup = async (req, res) => {
                 password: hashedPassword,
             });
 
-            const token = generateToken(newTeacher);
+            // const token = generateToken(newTeacher);
+            const token = generateToken(newTeacher._id, res);
+
 
             return res.status(201).json({
                 message: "Teacher signup successful (pending admin approval)",
@@ -121,7 +115,10 @@ export const signup = async (req, res) => {
                 password: hashedPassword,
             });
 
-            const token = generateToken(newAdmin);
+            // const token = generateToken(newAdmin);
+            const token = generateToken(newAdmin._id, res);
+
+
 
             return res.status(201).json({
                 message: "Admin created successfully",
@@ -175,9 +172,10 @@ export const login = async (req, res) => {
       }
 
       // Optional: only allow login if approved
-      if (!user.approvedByAdmin) {
+       if (!user.approvedByAdmin) {
         return res.status(403).json({
-          message: "Your account is not approved by admin yet",
+          message: "Your account is under review. Please wait for admin approval.",
+          underReview: true,
         });
       }
     }
@@ -205,7 +203,7 @@ export const login = async (req, res) => {
 
 
     // ===== TOKEN GENERATION =====
-    const token = generateToken(user);
+    const token = generateToken(user._id, res);
 
     res.status(200).json({
       message: `${role} login successful`,
@@ -223,3 +221,179 @@ export const login = async (req, res) => {
   }
 };
     
+
+
+export const logout = (req, res) => {
+  res.clearCookie("token");
+  res.status(200).json({ message: "Logged out successfully" });
+};
+
+
+// ✨ UPDATE STUDENT PROFILE
+// export const updateStudentProfile = async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+
+//     // extract fields from frontend
+//     const { name, city, class: classLevel, profilepic, phone, address, dob } = req.body;
+
+//     const updatedStudent = await Student.findByIdAndUpdate(
+//       userId,
+//       {
+//         name,
+//         city,
+//         class: classLevel,
+//         profilepic,
+//         phone,
+//         address,
+//         dob,
+//       },
+//       { new: true }
+//     ).select("-password");
+
+//     if (!updatedStudent) {
+//       return res.status(404).json({ message: "Student not found" });
+//     }
+
+//     res.json({
+//       success: true,
+//       message: "Profile updated successfully",
+//       user: updatedStudent,
+//     });
+//   } catch (error) {
+//     console.error("Profile update error:", error);
+//     res.status(500).json({ message: "Server error during profile update" });
+//   }
+// };
+
+// ✨ UPDATE USER PROFILE (Student + Teacher)
+export const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Frontend se jo fields aaye wo le lo
+    const {
+      name,
+      city,
+      phone,
+      address,
+      dob,
+      qualification,
+      bio,
+      experience,
+      profilepic,
+      education,
+      email,
+    } = req.body;
+
+    // Step 1 — Check if Student
+    let user = await Student.findById(userId);
+    if (user) {
+      user.name = name ?? user.name;
+      user.city = city ?? user.city;
+      user.phone = phone ?? user.phone;
+      user.address = address ?? user.address;
+      user.dob = dob ?? user.dob;
+      user.profilepic = profilepic ?? user.profilepic;
+
+      const updated = await user.save();
+      return res.json({
+        success: true,
+        message: "Profile updated successfully",
+        user: updated.toObject({ getters: true, virtuals: false }),
+      });
+    }
+
+    // Step 2 — Check if Teacher
+    user = await Teacher.findById(userId);
+    if (user) {
+      user.name = name ?? user.name;
+      user.phone = phone ?? user.phone;
+      user.city = city ?? user.city;
+      user.address = address ?? user.address;
+      user.dob = dob ?? user.dob;
+      user.experience = experience ?? user.experience;
+      user.bio = bio ?? user.bio;
+      user.qualification = qualification ?? user.qualification;
+      user.photo = profilepic ?? user.photo;
+      user.email = email ?? user.email;
+      user.education = education ?? user.education;
+
+      const updated = await user.save();
+      return res.json({
+        success: true,
+        message: "Profile updated successfully",
+        user: updated.toObject({ getters: true, virtuals: false }),
+      });
+    }
+
+    return res.status(404).json({ message: "User not found" });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Server error during profile update" });
+  }
+};
+
+
+
+// ✨ CHANGE PASSWORD CONTROLLER
+export const changePassword = async (req, res) => {
+  try {
+    const userID = req.user._id;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Both fields are required" });
+    }
+
+    // Find user in all collections
+    let user =
+      (await Student.findById(userID)) ||
+      (await Teacher.findById(userID)) ||
+      (await Admin.findById(userID));
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const match = await bcrypt.compare(oldPassword, user.password);
+    if (!match)
+      return res.status(401).json({ message: "Old password incorrect" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.log("Change Password Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// 👤 GET ME - Fetch current user profile with populated relations
+export const getMe = async (req, res) => {
+  try {
+    const userID = req.user._id;
+
+    let user = await Student.findById(userID)
+      .select("-password")
+      .populate("enrolledBatches", "name code teacher price startDate capacity");
+
+    if (!user) {
+      user = await Teacher.findById(userID).select("-password");
+    }
+
+    if (!user) {
+      user = await Admin.findById(userID).select("-password");
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error("Get Me Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

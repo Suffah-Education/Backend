@@ -3,12 +3,17 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import { connectDB } from './lib/db.js';
 import authroutes from './routes/auth.route.js'
+import paymentRoutes from './routes/payment.route.js'
+import batchroutes from './routes/batch.route.js'
+import cookieParser from 'cookie-parser';
+import adminroute from './routes/admin.route.js'
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(cookieParser())
 app.use(cors({
   origin: [
     "http://localhost:5174", // suffaheducation
@@ -19,7 +24,10 @@ app.use(cors({
 
 
 // Routes
-app.use('/api/auth', authroutes)
+app.use('/api/auth', authroutes);
+app.use('/api/batches', batchroutes);
+app.use('/api/admin', adminroute);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend is running');
