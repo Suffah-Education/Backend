@@ -15,13 +15,32 @@ const teacherSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
+        // Additional profile fields
         email: {
             type: String,
+        },
+        city: {
+            type: String,
+        },
+        address: {
+            type: String,
+        },
+        dob: {
+            type: Date,
+        },
+        qualification: {
+            type: String,
+        },
+        bio: {
+            type: String,
+        },
+        experience: {
+            type: Number,
         },
         education: {
             type: String,
         },
-        photo: {
+        profilepic: {
             type: String,
         },
         password: {
