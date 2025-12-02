@@ -21,7 +21,7 @@ app.use(cors({
     "http://localhost:5174", // suffaheducation (local)
     "http://localhost:5173", // dashboard (local)
     process.env.FRONTEND_URL_1, // production frontend 1 (add to .env)
-    process.env.FRONTEND_URL_2, // production frontend 2 (add to .env)
+
   ].filter(Boolean),
   credentials: true,
 }));
