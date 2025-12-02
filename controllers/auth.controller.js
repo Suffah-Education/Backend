@@ -86,7 +86,7 @@ export const signup = async (req, res) => {
         phone,
         email,
         education,
-        photo,
+        profilepic: photo, 
         city,
         address,
         dob,
@@ -235,16 +235,6 @@ export const login = async (req, res) => {
       user: userToReturn,
     });
 
-    // res.status(200).json({
-    //   message: `${role} login successful`,
-    //   token,
-    //   role: user.role,
-    //   user: {
-    //     id: user._id,
-    //     name: user.name,
-    //     phone: user.phone || user.adminId,
-    //   },
-    // });
   } catch (err) {
     console.error("Login Error:", err);
     res.status(500).json({ message: "Server error during login" });
@@ -259,74 +249,6 @@ export const logout = (req, res) => {
 };
 
 
-
-// ✨ UPDATE USER PROFILE (Student + Teacher)
-// export const updateUserProfile = async (req, res) => {
-//   try {
-//     const userId = req.user._id;
-
-//     // Frontend se jo fields aaye wo le lo
-//     const {
-//       name,
-//       city,
-//       phone,
-//       address,
-//       dob,
-//       qualification,
-//       bio,
-//       experience,
-//       profilepic,
-//       education,
-//       email,
-//     } = req.body;
-
-//     // Step 1 — Check if Student
-//     let user = await Student.findById(userId);
-//     if (user) {
-//       user.name = name ?? user.name;
-//       user.city = city ?? user.city;
-//       user.phone = phone ?? user.phone;
-//       user.address = address ?? user.address;
-//       user.dob = dob ?? user.dob;
-//       user.profilepic = profilepic ?? user.profilepic;
-
-//       const updated = await user.save();
-//       return res.json({
-//         success: true,
-//         message: "Profile updated successfully",
-//         user: updated.toObject({ getters: true, virtuals: false }),
-//       });
-//     }
-
-//     // Step 2 — Check if Teacher
-//     user = await Teacher.findById(userId);
-//     if (user) {
-//       user.name = name ?? user.name;
-//       user.phone = phone ?? user.phone;
-//       user.city = city ?? user.city;
-//       user.address = address ?? user.address;
-//       user.dob = dob ?? user.dob;
-//       user.experience = experience ?? user.experience;
-//       user.bio = bio ?? user.bio;
-//       user.qualification = qualification ?? user.qualification;
-//       user.photo = profilepic ?? user.photo;
-//       user.email = email ?? user.email;
-//       user.education = education ?? user.education;
-
-//       const updated = await user.save();
-//       return res.json({
-//         success: true,
-//         message: "Profile updated successfully",
-//         user: updated.toObject({ getters: true, virtuals: false }),
-//       });
-//     }
-
-//     return res.status(404).json({ message: "User not found" });
-//   } catch (error) {
-//     console.error("Profile update error:", error);
-//     res.status(500).json({ message: "Server error during profile update" });
-//   }
-// };
 
 export const updateUserProfile = async (req, res) => {
   try {

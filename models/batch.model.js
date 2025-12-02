@@ -19,7 +19,6 @@ const batchSchema = new mongoose.Schema(
         code: { type: String, required: true, unique: true },
 
         startDate: { type: Date, required: true },
-        endDate: { type: Date },
 
         capacity: { type: Number, required: true, default: 25 },
 
@@ -43,6 +42,15 @@ const batchSchema = new mongoose.Schema(
         ],
 
         messages: [messageSchema],
+
+        isCompleted: {
+            type: Boolean,
+            default: false
+        },
+
+        completedAt: {
+            type: Date
+        },
 
         status: {
             type: String,

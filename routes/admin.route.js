@@ -4,6 +4,7 @@ import {
   getApprovedTeachers,
   approveTeacher,
   rejectTeacher,
+  getSingleTeacher,
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -19,5 +20,9 @@ router.patch("/approve-teacher/:id", approveTeacher);
 
 // ❌ Reject teacher
 router.delete("/reject-teacher/:id", rejectTeacher);
+
+// 🔍 Single teacher full detail
+router.get("/teacher/:id", getSingleTeacher);
+
 
 export default router;

@@ -7,6 +7,8 @@ import paymentRoutes from './routes/payment.route.js'
 import batchroutes from './routes/batch.route.js'
 import cookieParser from 'cookie-parser';
 import adminroute from './routes/admin.route.js'
+import cron from 'node-cron';
+import Subscription from './models/subscription.model.js';
 
 dotenv.config();
 const app = express();
@@ -19,7 +21,7 @@ app.use(cors({
     "http://localhost:5174", // suffaheducation
     "http://localhost:5173", // dashboard
   ],
-  credentials: true, 
+  credentials: true,
 }));
 
 
@@ -31,6 +33,16 @@ app.use('/api/payments', paymentRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend is running');
+});
+
+// cron job
+cron.schedule("0 0 * * *", async () => {
+  const now = new Date();
+  await Subscription.updateMany(
+    { expiryDate: { $lt: now } },
+    { status: "expired" }
+  );
+  console.log("Expired subscriptions updated");
 });
 
 app.listen(PORT, () => {

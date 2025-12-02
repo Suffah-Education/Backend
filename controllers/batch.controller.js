@@ -1,88 +1,87 @@
 import Batch from '../models/batch.model.js';
 import Student from '../models/user.model.js';
+import Subscription from '../models/subscription.model.js';
 
 export const createBatch = async (req, res) => {
-    try {
-        if (req.user.role !== 'teacher') {
-            return res.status(403).json({ message: "Only teachers can create batches." });
-        }
-
-        const {
-            name,
-            code,
-            startDate,
-            endDate,
-            capacity,
-            description,
-            duration,
-            syllabus,
-            price
-        } = req.body;
-
-        if (!name || !code || !startDate || !capacity) {
-            return res.status(400).json({
-                message: "Please fill all required fields: name, code, startDate, capacity."
-            });
-        }
-
-        const exists = await Batch.findOne({ code });
-        if (exists) {
-            return res.status(400).json({ message: `Batch code '${code}' already exists.` });
-        }
-
-        const newBatch = await Batch.create({
-            name,
-            code,
-            startDate,
-            endDate,
-            capacity,
-            description,
-            duration,
-            syllabus,
-            price,
-            teacher: req.user._id,
-        });
-
-        res.status(201).json({
-            message: "Batch created successfully",
-            newBatch,
-        });
-
-    } catch (err) {
-        console.error("Create Batch Error:", err);
-        res.status(500).json({ message: "Server error while creating batch." });
+  try {
+    if (req.user.role !== 'teacher') {
+      return res.status(403).json({ message: "Only teachers can create batches." });
     }
+
+    const {
+      name,
+      code,
+      startDate,
+      endDate,
+      capacity,
+      description,
+      duration,
+      syllabus,
+      price
+    } = req.body;
+
+    if (!name || !code || !startDate || !capacity) {
+      return res.status(400).json({
+        message: "Please fill all required fields: name, code, startDate, capacity."
+      });
+    }
+
+    const exists = await Batch.findOne({ code });
+    if (exists) {
+      return res.status(400).json({ message: `Batch code '${code}' already exists.` });
+    }
+
+    const newBatch = await Batch.create({
+      name,
+      code,
+      startDate,
+      endDate,
+      capacity,
+      description,
+      duration,
+      syllabus,
+      price,
+      teacher: req.user._id,
+    });
+
+    res.status(201).json({
+      message: "Batch created successfully",
+      newBatch,
+    });
+
+  } catch (err) {
+    console.error("Create Batch Error:", err);
+    res.status(500).json({ message: "Server error while creating batch." });
+  }
 };
 
 
-// 👩‍🏫 GET /api/batches/mybatches
-// Fetches all batches created by the logged-in teacher.
 export const getTeacherBatches = async (req, res) => {
-    try {
-        if (req.user.role !== 'teacher') {
-            return res.status(403).json({ message: "Access denied. Only teachers can view their batches." });
-        }
-
-        // Find all batches where the 'teacher' field matches the logged-in user's ID
-        const batches = await Batch.find({ teacher: req.user._id }).sort({ createdAt: -1 });
-
-        res.status(200).json({
-            batches,
-            count: batches.length,
-        });
-
-    } catch (err) {
-        console.error("Fetch Batches Error:", err);
-        res.status(500).json({ message: "Server error while fetching batches." });
+  try {
+    if (req.user.role !== 'teacher') {
+      return res.status(403).json({ message: "Access denied. Only teachers can view their batches." });
     }
+
+    // Find all batches where the 'teacher' field matches the logged-in user's ID
+    const batches = await Batch.find({ teacher: req.user._id }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      batches,
+      count: batches.length,
+    });
+
+  } catch (err) {
+    console.error("Fetch Batches Error:", err);
+    res.status(500).json({ message: "Server error while fetching batches." });
+  }
 };
 
 export const deleteBatch = async (req, res) => {
   try {
     const batch = await Batch.findById(req.params.id);
-    if(!batch) return res.status(404).json({ message: "Batch not found" });
+    if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-    if(batch.teacher.toString() !== req.user._id.toString()){
+    if (batch.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not allowed to delete this batch" });
     }
     await Batch.findByIdAndDelete(req.params.id);
@@ -95,20 +94,20 @@ export const deleteBatch = async (req, res) => {
 
 
 export const gettAlBatches = async (req, res) => {
-    try {
-        const batches = await Batch.find()
-        .populate('teacher', 'name')
-        .sort({createdAt: -1});
+  try {
+    const batches = await Batch.find()
+      .populate('teacher', 'name')
+      .sort({ createdAt: -1 });
 
-        res.status(200).json({
-            message: "Batches fetched successfully",
-            count: batches.length,
-            batches,
-        });
-    } catch (error) {
-        console.error("Fetch All Batches Error:", error);
-        res.status(500).json({ message: "Server error while fetching all batches." });
-    }
+    res.status(200).json({
+      message: "Batches fetched successfully",
+      count: batches.length,
+      batches,
+    });
+  } catch (error) {
+    console.error("Fetch All Batches Error:", error);
+    res.status(500).json({ message: "Server error while fetching all batches." });
+  }
 }
 
 export const getSingleBatch = async (req, res) => {
@@ -118,6 +117,16 @@ export const getSingleBatch = async (req, res) => {
       .populate("students", "name phone city profilepic");
 
     if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+    // 🔒 Privacy Check: If not enrolled and not teacher/admin, hide content
+    if (req.user.role !== 'teacher' && req.user.role !== 'admin' && !req.isEnrolled) {
+      const sanitizedBatch = batch.toObject();
+      delete sanitizedBatch.classes;
+      delete sanitizedBatch.messages;
+      delete sanitizedBatch.students; // Hide other students
+      // Keep: name, description, price, startDate, endDate, syllabus, etc.
+      return res.json(sanitizedBatch);
+    }
 
     res.json(batch);
   } catch (err) {
@@ -163,7 +172,7 @@ export const updateBatch = async (req, res) => {
     ];
     const updateData = {};
     allowedFields.forEach((field) => {
-      if(req.body[field] !== undefined){
+      if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];
       }
     });
@@ -171,7 +180,7 @@ export const updateBatch = async (req, res) => {
     const batch = await Batch.findById(req.params.id);
     if (!batch) return res.status(404).json({ message: "Batch not found" });
     // check permission
-    if(batch.teacher.toString() !== req.user._id.toString()){
+    if (batch.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not allowed to update this batch" });
     }
 
@@ -275,13 +284,101 @@ export const getMyEnrolledBatches = async (req, res) => {
     const fullBatches = await Batch.find({
       _id: { $in: student.enrolledBatches },
     })
-      .populate("teacher", "name")
+      .populate("teacher", "name photo profilepic")
       .populate("students", "name city profilepic");
 
-    res.json(fullBatches);
+    const subscriptions = await Subscription.find({
+      student: userId,
+    });
+
+    const now = new Date();
+
+    const finalBatches = fullBatches.map((batch) => {
+
+      // ✅ Find subscription safely
+      const sub = subscriptions.find(
+        (s) =>
+          s.batch &&                   // ensure not null
+          s.batch.toString() === batch._id.toString()
+      );
+
+      let isExpired = true;   // default expired
+
+      if (sub && sub.expiryDate) {
+        const expiry = new Date(sub.expiryDate);
+        isExpired = expiry < now;
+      }
+
+      return {
+        ...batch.toObject(),
+        isSubscriptionExpired: isExpired,
+        expiryDate: sub?.expiryDate || null,
+      };
+    });
+
+    res.json(finalBatches);
+
   } catch (err) {
-    console.error("Error fetching enrolled batches:", err);
+    console.error("❌ getMyEnrolledBatches error:", err);
+    res.status(500).json({ message: "Error fetching enrolled batches", error: err.message });
+  }
+};
+
+
+
+
+export const completeBatch = async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.id);
+    if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+    if (batch.teacher.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not allowed to complete this batch" });
+    }
+
+    batch.isCompleted = true;
+    batch.completedAt = new Date();
+
+    await batch.save();
+
+    res.json({ message: "Batch marked as completed" });
+
+
+  } catch (error) {
+    console.error("Error completing batch:", error);
     res.status(500).json({ message: "Server error" });
+  }
+}
+
+
+
+export const getAllBatchesForAdmin = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 6;
+    const skip = (page - 1) * limit;
+
+    const [batches, total] = await Promise.all([
+      Batch.find()
+        .populate("teacher", "name photo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Batch.countDocuments(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      batches,
+      currentPage: page,
+      totalPages,
+    });
+
+  } catch (error) {
+    console.error("Error fetching admin batches:", error);
+    res.status(500).json({ message: "Failed to fetch batches" });
   }
 };
 

@@ -75,3 +75,20 @@ export const rejectTeacher = async (req, res) => {
     res.status(500).json({ message: "Error rejecting teacher" });
   }
 };
+
+
+// 🔍 Get full teacher details by ID
+export const getSingleTeacher = async (req, res) => {
+  try {
+    const teacher = await Teacher.findById(req.params.id);
+
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    res.json(teacher);
+  } catch (err) {
+    console.error("Error fetching teacher details:", err);
+    res.status(500).json({ message: "Error fetching teacher details" });
+  }
+};
