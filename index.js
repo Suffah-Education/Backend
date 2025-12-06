@@ -24,7 +24,7 @@ app.use(cookieParser())
 const allowedOrigins = [
   "http://localhost:5174", // suffaheducation (local)
   "http://localhost:5173", // dashboard (local)
-  ...(process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : []),
+  ...(process.env.FRONTEND_URL_1 ? process.env.FRONTEND_URL_1.split(',') : []),
 ].map(s => s && s.trim()).filter(Boolean);
 
 app.use(cors({
