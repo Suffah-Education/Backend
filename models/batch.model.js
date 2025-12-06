@@ -6,7 +6,6 @@ const messageSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-
 const classSchema = new mongoose.Schema({
     title: { type: String, required: true },
     link: { type: String, required: true },
@@ -28,13 +27,12 @@ const batchSchema = new mongoose.Schema(
 
         syllabus: [{ type: String }],
 
-        // NEW: Classes
         classes: [classSchema],
 
         teacher: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Teacher",
-            required: true
+            required: true,
         },
 
         students: [
@@ -61,6 +59,13 @@ const batchSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+// IMPORTANT INDEXES
+batchSchema.index({ unique: true });
+batchSchema.index({ teacher: 1 });
+batchSchema.index({ startDate: 1 });
+batchSchema.index({ createdAt: -1 });
+batchSchema.index({ students: 1 });
+batchSchema.index({ teacher: 1, startDate: 1 });
+
 const Batch = mongoose.model("Batch", batchSchema);
 export default Batch;
-

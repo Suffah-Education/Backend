@@ -63,7 +63,7 @@ export const getTeacherBatches = async (req, res) => {
     }
 
     // Find all batches where the 'teacher' field matches the logged-in user's ID
-    const batches = await Batch.find({ teacher: req.user._id }).sort({ createdAt: -1 });
+    const batches = await Batch.find({ teacher: req.user._id }).sort({ createdAt: -1 }).lean();
 
     res.status(200).json({
       batches,
@@ -95,14 +95,29 @@ export const deleteBatch = async (req, res) => {
 
 export const gettAlBatches = async (req, res) => {
   try {
-    const batches = await Batch.find()
-      .populate('teacher', 'name')
-      .sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [batches, total] = await Promise.all([
+      Batch.find()
+        .populate('teacher', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      
+      Batch.countDocuments(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
       message: "Batches fetched successfully",
-      count: batches.length,
       batches,
+      currentPage: page,
+      totalPages,
+      total,
     });
   } catch (error) {
     console.error("Fetch All Batches Error:", error);
@@ -114,7 +129,8 @@ export const getSingleBatch = async (req, res) => {
   try {
     const batch = await Batch.findById(req.params.id)
       .populate("teacher", "name")
-      .populate("students", "name phone city profilepic");
+      .populate("students", "name phone city profilepic")
+      .lean();
 
     if (!batch) return res.status(404).json({ message: "Batch not found" });
 
@@ -231,11 +247,15 @@ export const getTeacherStudents = async (req, res) => {
       return res.status(403).json({ message: "Access denied. Only teachers can view their students." });
     }
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     // Get all batches created by this teacher
     const batches = await Batch.find({ teacher: req.user._id }).populate(
       "students",
       "name phone city profilepic dob address"
-    );
+    ).lean();
 
     // Collect unique students from all batches
     const studentMap = new Map();
@@ -255,12 +275,17 @@ export const getTeacherStudents = async (req, res) => {
       });
     });
 
-    const students = Array.from(studentMap.values());
+    const allStudents = Array.from(studentMap.values());
+    const total = allStudents.length;
+    const totalPages = Math.ceil(total / limit);
+    const paginatedStudents = allStudents.slice(skip, skip + limit);
 
     res.json({
       message: "Students fetched successfully",
-      count: students.length,
-      students,
+      students: paginatedStudents,
+      currentPage: page,
+      totalPages,
+      total,
     });
   } catch (err) {
     console.error("Get Teacher Students Error:", err);
@@ -275,17 +300,25 @@ export const getMyEnrolledBatches = async (req, res) => {
       return res.status(403).json({ message: "Only students allowed" });
 
     const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
     const student = await Student.findById(userId);
 
     if (!student || !student.enrolledBatches)
-      return res.json([]);
+      return res.json({ batches: [], currentPage: page, totalPages: 0, total: 0 });
+
+    const total = student.enrolledBatches.length;
+    const totalPages = Math.ceil(total / limit);
+    const paginatedBatchIds = student.enrolledBatches.slice(skip, skip + limit);
 
     const fullBatches = await Batch.find({
-      _id: { $in: student.enrolledBatches },
+      _id: { $in: paginatedBatchIds },
     })
       .populate("teacher", "name photo profilepic")
-      .populate("students", "name city profilepic");
+      .populate("students", "name city profilepic")
+      .lean();
 
     const subscriptions = await Subscription.find({
       student: userId,
@@ -316,7 +349,12 @@ export const getMyEnrolledBatches = async (req, res) => {
       };
     });
 
-    res.json(finalBatches);
+    res.json({
+      batches: finalBatches,
+      currentPage: page,
+      totalPages,
+      total,
+    });
 
   } catch (err) {
     console.error("❌ getMyEnrolledBatches error:", err);
@@ -363,7 +401,8 @@ export const getAllBatchesForAdmin = async (req, res) => {
         .populate("teacher", "name photo")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
 
       Batch.countDocuments(),
     ]);

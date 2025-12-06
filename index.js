@@ -1,6 +1,9 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 import { connectDB } from './lib/db.js';
 import authroutes from './routes/auth.route.js'
 import paymentRoutes from './routes/payment.route.js'
@@ -16,15 +19,32 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cookieParser())
-app.use(cors({
-  origin: [
-    "http://localhost:5174", // suffaheducation (local)
-    "http://localhost:5173", // dashboard (local)
-    process.env.FRONTEND_URL_1, // production frontend 1 (add to .env)
 
-  ].filter(Boolean),
+// CORS: allow a list of origins. You can set `FRONTEND_URLS` in .env as a comma-separated list for production
+const allowedOrigins = [
+  "http://localhost:5174", // suffaheducation (local)
+  "http://localhost:5173", // dashboard (local)
+  ...(process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : []),
+].map(s => s && s.trim()).filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
 }));
+
+// Trust proxy when behind a reverse proxy (useful for secure cookies in production)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+// Basic security + performance middlewares
+app.use(helmet());
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP
+});
+app.use(apiLimiter);
+app.use(compression());
 
 
 // Routes
@@ -38,16 +58,25 @@ app.get('/', (req, res) => {
 });
 
 // cron job
-cron.schedule("0 0 * * *", async () => {
-  const now = new Date();
-  await Subscription.updateMany(
-    { expiryDate: { $lt: now } },
-    { status: "expired" }
-  );
-  console.log("Expired subscriptions updated");
-});
+// cron.schedule("0 0 * * *", async () => {
+//   const now = new Date();
+//   await Subscription.updateMany(
+//     { expiryDate: { $lt: now } },
+//     { status: "expired" }
+//   );
+//   console.log("Expired subscriptions updated");
+// });
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   connectDB();
+});
+
+// Unified error handler (last middleware)
+app.use((err, req, res, next) => {
+  // Minimal, consistent error logging
+  console.error(err && err.stack ? err.stack : err);
+  const status = err && err.status ? err.status : 500;
+  const message = err && err.message ? err.message : 'Internal Server Error';
+  res.status(status).json({ message });
 });

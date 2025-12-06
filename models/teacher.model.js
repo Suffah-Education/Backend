@@ -47,6 +47,8 @@ const teacherSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        securityQuestion: { type: String, default: "" },
+        securityAnswerHash: { type: String, default: "" },
         coursesCreated: [
             {
                 type: mongoose.Schema.Types.ObjectId,
@@ -60,6 +62,11 @@ const teacherSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
+// teacher.model.js  (optimized)
+// teacherSchema.index({ phone: 1 });
+teacherSchema.index({ email: 1 });
+
 
 export const Teacher = mongoose.model("Teacher", teacherSchema);
 export default Teacher;

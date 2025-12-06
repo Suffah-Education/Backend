@@ -12,7 +12,8 @@ export const getPendingTeachers = async (req, res) => {
       Teacher.find({ approvedByAdmin: false })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Teacher.countDocuments({ approvedByAdmin: false }),
     ]);
 
@@ -36,7 +37,8 @@ export const getApprovedTeachers = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select("name education photo email"),
+        .select("name education photo email")
+        .lean(),
       Teacher.countDocuments({ approvedByAdmin: true }),
     ]);
 
@@ -80,7 +82,7 @@ export const rejectTeacher = async (req, res) => {
 // 🔍 Get full teacher details by ID
 export const getSingleTeacher = async (req, res) => {
   try {
-    const teacher = await Teacher.findById(req.params.id);
+    const teacher = await Teacher.findById(req.params.id).lean();
 
     if (!teacher) {
       return res.status(404).json({ message: "Teacher not found" });

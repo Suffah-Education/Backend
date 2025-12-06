@@ -1,5 +1,5 @@
 import express from "express";
-import { signup, login, logout, updateUserProfile, changePassword, getMe} from "../controllers/auth.controller.js";
+import { signup, login, logout, updateUserProfile, changePassword, getMe, getSecurityQuestion, resetPasswordWithSecurityAnswer, verifySecurityAnswer } from "../controllers/auth.controller.js";
 import { protect } from "../middleware/protect.js";
 import upload from "../middleware/upload.js";
 
@@ -16,4 +16,7 @@ router.put("/update-profile", protect, upload.single("profilepic"), updateUserPr
 
 router.post("/change-password", protect, changePassword);
 
+router.post("/forgot-password/question", getSecurityQuestion);
+router.post("/forgot-password/reset", resetPasswordWithSecurityAnswer);
+router.post("/forgot-password/verify", verifySecurityAnswer);
 export default router;

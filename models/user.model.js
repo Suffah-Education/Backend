@@ -1,46 +1,28 @@
 import mongoose from "mongoose";
 
+const studentSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    phone: { type: String, required: true, unique: true, index: true },
+    dob: Date,
+    address: String,
+    class: { type: String, default: "" },
+    password: { type: String, required: true },
+    profilepic: { type: String, default: "" },
+    city: { type: String, default: "" },
+    role: { type: String, default: "student" },
 
-const studentSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
+    securityQuestion: { type: String, default: "" },
+    securityAnswerHash: { type: String, default: "" },
+
+    enrolledBatches: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Batch" }
+    ],
   },
-  phone: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  dob: {
-    type: Date,
-  },
-  address: {
-    type: String,
-  },
-  class: {
-    type: String,
-    default: "",
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  profilepic: {
-    type: String,
-    default: "",
-  },
-  city: {
-    type: String,
-    default: "",
-  },
-  role: {
-    type: String,
-    default: "student",
-  },
-  enrolledBatches: [
-    { type: mongoose.Schema.Types.ObjectId, ref: "Batch" }
-  ]
-}, { timestamps: true });
+  { timestamps: true }
+);
+
+studentSchema.index({ _id: 1, enrolledBatches: 1 });
 
 const Student = mongoose.model("Student", studentSchema);
 export default Student;
