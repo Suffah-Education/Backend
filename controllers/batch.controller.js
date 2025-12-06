@@ -106,7 +106,7 @@ export const gettAlBatches = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Batch.countDocuments(),
     ]);
 
@@ -136,7 +136,7 @@ export const getSingleBatch = async (req, res) => {
 
     // 🔒 Privacy Check: If not enrolled and not teacher/admin, hide content
     if (req.user.role !== 'teacher' && req.user.role !== 'admin' && !req.isEnrolled) {
-      const sanitizedBatch = batch.toObject();
+      const sanitizedBatch = { ...batch };
       delete sanitizedBatch.classes;
       delete sanitizedBatch.messages;
       delete sanitizedBatch.students; // Hide other students
@@ -263,7 +263,7 @@ export const getTeacherStudents = async (req, res) => {
       batch.students.forEach((student) => {
         if (!studentMap.has(student._id.toString())) {
           studentMap.set(student._id.toString(), {
-            ...student.toObject(),
+            ...student,
             batches: [{ _id: batch._id, name: batch.name }],
           });
         } else {
@@ -342,8 +342,9 @@ export const getMyEnrolledBatches = async (req, res) => {
         isExpired = expiry < now;
       }
 
+      // ✅ FIX: batch is already a plain object from .lean(), no need for .toObject()
       return {
-        ...batch.toObject(),
+        ...batch,
         isSubscriptionExpired: isExpired,
         expiryDate: sub?.expiryDate || null,
       };
