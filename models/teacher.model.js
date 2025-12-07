@@ -47,8 +47,8 @@ const teacherSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        securityQuestion: { type: String, default: "" },
-        securityAnswerHash: { type: String, default: "" },
+        securityQuestion: { type: String, required: true },
+        securityAnswerHash: { type: String, required: true },
         coursesCreated: [
             {
                 type: mongoose.Schema.Types.ObjectId,

@@ -127,26 +127,43 @@ export const gettAlBatches = async (req, res) => {
 
 export const getSingleBatch = async (req, res) => {
   try {
+    console.log("🔍 getSingleBatch - id:", req.params.id, "user:", req.user._id, "role:", req.user.role, "isEnrolled:", req.isEnrolled);
+
     const batch = await Batch.findById(req.params.id)
       .populate("teacher", "name")
       .populate("students", "name phone city profilepic")
       .lean();
 
-    if (!batch) return res.status(404).json({ message: "Batch not found" });
+    if (!batch) {
+      console.log("❌ Batch not found in getSingleBatch");
+      return res.status(404).json({ message: "Batch not found" });
+    }
 
-    // 🔒 Privacy Check: If not enrolled and not teacher/admin, hide content
-    if (req.user.role !== 'teacher' && req.user.role !== 'admin' && !req.isEnrolled) {
-      const sanitizedBatch = { ...batch };
+    console.log("✅ Batch found in getSingleBatch:", batch.name);
+
+    if (
+      req.user.role !== "teacher" &&
+      req.user.role !== "admin" &&
+      !req.isEnrolled
+    ) {
+      // Since batch is lean(), it's already a plain object
+      const sanitizedBatch = { ...batch }; // ⭐ FIX
+
+      // Hide sensitive fields
       delete sanitizedBatch.classes;
       delete sanitizedBatch.messages;
-      delete sanitizedBatch.students; // Hide other students
-      // Keep: name, description, price, startDate, endDate, syllabus, etc.
+      delete sanitizedBatch.students;
+
       return res.json(sanitizedBatch);
     }
 
+
+
+    console.log("✅ Sending full batch data");
     res.json(batch);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching batch" });
+    console.error("❌ getSingleBatch Error:", err);
+    res.status(500).json({ message: "Error fetching batch", error: err.message });
   }
 };
 
@@ -263,17 +280,17 @@ export const getTeacherStudents = async (req, res) => {
       batch.students.forEach((student) => {
         if (!studentMap.has(student._id.toString())) {
           studentMap.set(student._id.toString(), {
-            ...student,
+            ...student,  // FIXED
             batches: [{ _id: batch._id, name: batch.name }],
           });
         } else {
-          // Add batch to existing student
           const existing = studentMap.get(student._id.toString());
           existing.batches.push({ _id: batch._id, name: batch.name });
           studentMap.set(student._id.toString(), existing);
         }
       });
     });
+
 
     const allStudents = Array.from(studentMap.values());
     const total = allStudents.length;
@@ -342,7 +359,6 @@ export const getMyEnrolledBatches = async (req, res) => {
         isExpired = expiry < now;
       }
 
-      // ✅ FIX: batch is already a plain object from .lean(), no need for .toObject()
       return {
         ...batch,
         isSubscriptionExpired: isExpired,

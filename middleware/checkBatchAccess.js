@@ -6,19 +6,31 @@ export const checkBatchAccess = async (req, res, next) => {
         const batchId = req.params.id;
         const userId = req.user._id;
 
+        console.log("🔍 checkBatchAccess - batchId:", batchId, "userId:", userId, "role:", req.user.role);
+
         const batch = await Batch.findById(batchId);
-        if (!batch) return res.status(404).json({ message: "Batch not found" });
+        if (!batch) {
+            console.log("❌ Batch not found:", batchId);
+            return res.status(404).json({ message: "Batch not found" });
+        }
+
+        console.log("✅ Batch found:", batch.name);
 
         // ✅ Teacher & Admin free access
         if (req.user.role === "teacher" || req.user.role === "admin") {
+            console.log("✅ Teacher/Admin access granted");
             req.isEnrolled = true;
             return next();
         }
 
+        console.log("🔍 Looking for subscription...");
         const subscription = await Subscription.findOne({
             student: userId,
             batch: batchId
         });
+
+        console.log("📋 Subscription found:", subscription ? "YES" : "NO");
+
 
         // 🔴 If subscription EXISTS → check expiry
         if (subscription) {
@@ -43,8 +55,8 @@ export const checkBatchAccess = async (req, res, next) => {
                 return res.status(402).json({
                     message: "Subscription expired. Please renew.",
                     expired: true,
-                    price: batch.price,      // ⭐ ADD THIS
-
+                    price: batch.price,
+                    batchName: batch.name,  // ⭐ ADD THIS
                 });
 
             }
@@ -59,7 +71,8 @@ export const checkBatchAccess = async (req, res, next) => {
         return next();
 
     } catch (error) {
-        console.error("CheckBatchAccess Error:", error);
-        return res.status(500).json({ message: "Server error" });
+        console.error("❌ CheckBatchAccess Error:", error);
+        console.error("Stack trace:", error.stack);
+        return res.status(500).json({ message: "Server error", error: error.message });
     }
 };

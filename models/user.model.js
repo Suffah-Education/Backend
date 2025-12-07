@@ -12,8 +12,8 @@ const studentSchema = new mongoose.Schema(
     city: { type: String, default: "" },
     role: { type: String, default: "student" },
 
-    securityQuestion: { type: String, default: "" },
-    securityAnswerHash: { type: String, default: "" },
+    securityQuestion: { type: String, required: true },
+    securityAnswerHash: { type: String, required: true },
 
     enrolledBatches: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Batch" }

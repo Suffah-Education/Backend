@@ -39,11 +39,11 @@ if (process.env.NODE_ENV === 'production') {
 
 // Basic security + performance middlewares
 app.use(helmet());
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP
-});
-app.use(apiLimiter);
+// const apiLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP
+// });
+// app.use(apiLimiter);
 app.use(compression());
 
 

@@ -28,8 +28,8 @@ export const getPendingTeachers = async (req, res) => {
 // 🟢 Fetch approved teachers (with pagination)
 export const getApprovedTeachers = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 6;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 6;
     const skip = (page - 1) * limit;
 
     const [teachers, total] = await Promise.all([
@@ -43,7 +43,7 @@ export const getApprovedTeachers = async (req, res) => {
     ]);
 
     const totalPages = Math.ceil(total / limit);
-    res.json({ teachers, currentPage: page, totalPages });
+    res.json({ teachers, currentPage: page, totalPages: Math.ceil(total / limit), });
   } catch (error) {
     console.error("Error fetching approved teachers:", error);
     res.status(500).json({ message: "Error fetching approved teachers" });
