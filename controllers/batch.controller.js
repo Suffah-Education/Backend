@@ -100,14 +100,14 @@ export const gettAlBatches = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const [batches, total] = await Promise.all([
-      Batch.find()
+      Batch.find({ isCompleted: false })
         .populate('teacher', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
 
-      Batch.countDocuments(),
+      Batch.countDocuments({ isCompleted: false }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -127,7 +127,7 @@ export const gettAlBatches = async (req, res) => {
 
 export const getSingleBatch = async (req, res) => {
   try {
-    console.log("🔍 getSingleBatch - id:", req.params.id, "user:", req.user._id, "role:", req.user.role, "isEnrolled:", req.isEnrolled);
+    // console.log("🔍 getSingleBatch - id:", req.params.id, "user:", req.user._id, "role:", req.user.role, "isEnrolled:", req.isEnrolled);
 
     const batch = await Batch.findById(req.params.id)
       .populate("teacher", "name")
@@ -135,11 +135,11 @@ export const getSingleBatch = async (req, res) => {
       .lean();
 
     if (!batch) {
-      console.log("❌ Batch not found in getSingleBatch");
+      // console.log("❌ Batch not found in getSingleBatch");
       return res.status(404).json({ message: "Batch not found" });
     }
 
-    console.log("✅ Batch found in getSingleBatch:", batch.name);
+    // console.log("✅ Batch found in getSingleBatch:", batch.name);
 
     if (
       req.user.role !== "teacher" &&
@@ -156,10 +156,7 @@ export const getSingleBatch = async (req, res) => {
 
       return res.json(sanitizedBatch);
     }
-
-
-
-    console.log("✅ Sending full batch data");
+    // console.log("✅ Sending full batch data");
     res.json(batch);
   } catch (err) {
     console.error("❌ getSingleBatch Error:", err);
@@ -230,9 +227,37 @@ export const updateBatch = async (req, res) => {
 };
 
 
+// export const addClassToBatch = async (req, res) => {
+//   try {
+//     const { title, link } = req.body;
+
+//     if (!title || !link) {
+//       return res.status(400).json({ message: "Title and link are required" });
+//     }
+
+//     const batch = await Batch.findById(req.params.id);
+//     if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+//     // Only teacher who owns the batch can add class
+//     if (batch.teacher.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: "Not allowed" });
+//     }
+
+//     batch.classes.push({ title, link });
+//     await batch.save();
+
+//     res.json({ message: "Class added", classes: batch.classes });
+//   } catch (err) {
+//     res.status(500).json({ message: "Error adding class" });
+//   }
+// };
+
+
+// 👨‍🎓 GET TEACHER'S STUDENTS
+// Fetch all students enrolled in any of the teacher's batches
 export const addClassToBatch = async (req, res) => {
   try {
-    const { title, link } = req.body;
+    const { title, link, date } = req.body;
 
     if (!title || !link) {
       return res.status(400).json({ message: "Title and link are required" });
@@ -241,12 +266,16 @@ export const addClassToBatch = async (req, res) => {
     const batch = await Batch.findById(req.params.id);
     if (!batch) return res.status(404).json({ message: "Batch not found" });
 
-    // Only teacher who owns the batch can add class
     if (batch.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    batch.classes.push({ title, link });
+    batch.classes.push({
+      title,
+      link,
+      date: date ? new Date(date) : new Date(),
+    });
+
     await batch.save();
 
     res.json({ message: "Class added", classes: batch.classes });
@@ -256,8 +285,7 @@ export const addClassToBatch = async (req, res) => {
 };
 
 
-// 👨‍🎓 GET TEACHER'S STUDENTS
-// Fetch all students enrolled in any of the teacher's batches
+
 export const getTeacherStudents = async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {

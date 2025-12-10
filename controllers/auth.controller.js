@@ -286,7 +286,7 @@ export const getSecurityQuestion = async (req, res) => {
     // Strategy 4: Find ALL users and log for debugging
     if (!user) {
       const allUsers = await Model.find({}).select("name phone securityQuestion");
-      console.log(`📱 All ${role}s in DB:`, allUsers.map(u => ({ name: u.name, phone: u.phone })));
+      // console.log(`📱 All ${role}s in DB:`, allUsers.map(u => ({ name: u.name, phone: u.phone })));
     }
 
     if (!user) {
@@ -400,7 +400,7 @@ export const verifySecurityAnswer = async (req, res) => {
       return res.status(401).json({ message: "Wrong answer" });
     }
 
-    console.log(`✅ Answer verified for:`, user.name);
+    // console.log(`✅ Answer verified for:`, user.name);
     return res.json({ success: true });
   } catch (err) {
     console.error("❌ verifySecurityAnswer error:", err);
