@@ -466,3 +466,31 @@ export const getAllBatchesForAdmin = async (req, res) => {
   }
 };
 
+
+export const getPublicBatch = async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.id)
+      .populate("teacher", "name")
+      .lean();
+
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
+    // Public users should NOT see classes, messages, students
+    delete batch.classes;
+    delete batch.messages;
+    delete batch.students;
+
+    return res.json({
+      ...batch,
+      price: batch.price,
+      canBuy: true,
+    });
+
+  } catch (error) {
+    console.error("Public Batch Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

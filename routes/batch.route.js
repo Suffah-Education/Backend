@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/protect.js'; // Path assumed
-import { getAllBatchesForAdmin, createBatch, gettAlBatches, getTeacherBatches, getSingleBatch, sendBatchMessage, updateBatch, addClassToBatch, deleteBatch, getTeacherStudents, getMyEnrolledBatches, completeBatch } from '../controllers/batch.controller.js';
+import { getAllBatchesForAdmin,getPublicBatch, createBatch, gettAlBatches, getTeacherBatches, getSingleBatch, sendBatchMessage, updateBatch, addClassToBatch, deleteBatch, getTeacherStudents, getMyEnrolledBatches, completeBatch } from '../controllers/batch.controller.js';
 import { checkBatchAccess } from '../middleware/checkBatchAccess.js';
 
 const router = express.Router();
@@ -26,6 +26,10 @@ router.put('/:id/complete', protect, completeBatch);
 
 
 router.get("/admin/all-batches", protect, getAllBatchesForAdmin);
+
+
+router.get("/public/:id", getPublicBatch);
+
 
 
 export default router;
