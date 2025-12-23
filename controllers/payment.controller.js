@@ -89,8 +89,14 @@ export const verifyPayment = async (req, res) => {
     const now = new Date();
 
     // ⭐ TEST MODE: 2 minutes expiry (baad me 30 days ya 1 month kar dena)
-    const TEST_MINUTES = 2;
-    const expiryDate = new Date(now.getTime() + TEST_MINUTES * 60 * 1000);
+    // const TEST_MINUTES = 2;
+    // const expiryDate = new Date(now.getTime() + TEST_MINUTES * 60 * 1000);
+
+    // ✅ LIVE MODE: 30 days subscription
+    const DAYS = 30;
+    const expiryDate = new Date(
+      now.getTime() + DAYS * 24 * 60 * 60 * 1000
+    );
 
     let subscription = await Subscription.findOne({
       student: student._id,

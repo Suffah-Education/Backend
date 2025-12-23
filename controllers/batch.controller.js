@@ -1,6 +1,7 @@
 import Batch from '../models/batch.model.js';
 import Student from '../models/user.model.js';
 import Subscription from '../models/subscription.model.js';
+import Teacher from '../models/teacher.model.js';
 
 export const createBatch = async (req, res) => {
   try {
@@ -98,16 +99,31 @@ export const gettAlBatches = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const search = req.query.search || "";
+
+    const query = { isCompleted: false };
+
+    if (search) {
+      const teacherIds = await Teacher.find({
+        name: { $regex: search, $options: "i" }
+      }).distinct("_id");
+
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { code: { $regex: search, $options: "i" } },
+        { teacher: { $in: teacherIds } }
+      ];
+    }
 
     const [batches, total] = await Promise.all([
-      Batch.find({ isCompleted: false })
+      Batch.find(query)
         .populate('teacher', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
 
-      Batch.countDocuments({ isCompleted: false }),
+      Batch.countDocuments(query),
     ]);
 
     const totalPages = Math.ceil(total / limit);
