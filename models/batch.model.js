@@ -9,7 +9,9 @@ const messageSchema = new mongoose.Schema({
 const classSchema = new mongoose.Schema({
     title: { type: String, required: true },
     link: { type: String, required: true },
-    date: { type: Date, default: Date.now }
+    date: { type: Date, default: Date.now },
+    startTime: { type: Date }, // ✅ Optional for backward compatibility
+    endTime: { type: Date },   // ✅ Optional for backward compatibility
 });
 
 const batchSchema = new mongoose.Schema(

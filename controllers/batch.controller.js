@@ -92,8 +92,6 @@ export const deleteBatch = async (req, res) => {
   }
 }
 
-
-
 export const gettAlBatches = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -216,6 +214,7 @@ export const updateBatch = async (req, res) => {
       "price",
       "status"
     ];
+
     const updateData = {};
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
@@ -224,18 +223,27 @@ export const updateBatch = async (req, res) => {
     });
 
     const batch = await Batch.findById(req.params.id);
-    if (!batch) return res.status(404).json({ message: "Batch not found" });
-    // check permission
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
+    // 🔐 Permission check
     if (batch.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not allowed to update this batch" });
     }
 
-    const updateBatch = await batch.findByIdAndUpdate(
+    // ✅ CORRECT UPDATE
+    const updatedBatch = await Batch.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true }
+      { new: true, runValidators: true }
     );
-    res.json({ message: "Batch updated successfully", batch: updateBatch });
+
+    res.json({
+      message: "Batch updated successfully",
+      batch: updatedBatch
+    });
+
   } catch (err) {
     console.error("update batch error", err);
     res.status(500).json({ message: "Error updating batch" });
@@ -243,60 +251,50 @@ export const updateBatch = async (req, res) => {
 };
 
 
-// export const addClassToBatch = async (req, res) => {
-//   try {
-//     const { title, link } = req.body;
-
-//     if (!title || !link) {
-//       return res.status(400).json({ message: "Title and link are required" });
-//     }
-
-//     const batch = await Batch.findById(req.params.id);
-//     if (!batch) return res.status(404).json({ message: "Batch not found" });
-
-//     // Only teacher who owns the batch can add class
-//     if (batch.teacher.toString() !== req.user._id.toString()) {
-//       return res.status(403).json({ message: "Not allowed" });
-//     }
-
-//     batch.classes.push({ title, link });
-//     await batch.save();
-
-//     res.json({ message: "Class added", classes: batch.classes });
-//   } catch (err) {
-//     res.status(500).json({ message: "Error adding class" });
-//   }
-// };
-
 
 // 👨‍🎓 GET TEACHER'S STUDENTS
 // Fetch all students enrolled in any of the teacher's batches
 export const addClassToBatch = async (req, res) => {
   try {
-    const { title, link, date } = req.body;
+    const { title, link, date, startTime, endTime } = req.body;
 
-    if (!title || !link) {
-      return res.status(400).json({ message: "Title and link are required" });
+    if (!title || !link || !startTime || !endTime) {
+      return res.status(400).json({ message: "All fields required" });
     }
 
     const batch = await Batch.findById(req.params.id);
-    if (!batch) return res.status(404).json({ message: "Batch not found" });
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
 
     if (batch.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    batch.classes.push({
+    // Validate dates
+    const startTimeDate = new Date(startTime);
+    const endTimeDate = new Date(endTime);
+
+    if (isNaN(startTimeDate.getTime()) || isNaN(endTimeDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date format for startTime or endTime" });
+    }
+
+    const newClass = {
       title,
       link,
       date: date ? new Date(date) : new Date(),
-    });
+      startTime: startTimeDate,
+      endTime: endTimeDate,
+    };
 
-    await batch.save();
+    batch.classes.push(newClass);
 
-    res.json({ message: "Class added", classes: batch.classes });
+    const savedBatch = await batch.save();
+
+    res.json({ message: "Class added", classes: savedBatch.classes });
   } catch (err) {
-    res.status(500).json({ message: "Error adding class" });
+    console.error("Error adding class:", err.message);
+    res.status(500).json({ message: "Error adding class", error: err.message });
   }
 };
 
