@@ -298,6 +298,38 @@ export const addClassToBatch = async (req, res) => {
   }
 };
 
+export const deleteClassFromBatch = async (req, res) => {
+  try {
+    const { id, classId } = req.params;
+
+    const batch = await Batch.findById(id);
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
+    if (batch.teacher.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not allowed to modify this batch" });
+    }
+
+    // Filter out the class to delete
+    const initialLength = batch.classes.length;
+    batch.classes = batch.classes.filter(
+      (c) => c._id.toString() !== classId
+    );
+
+    if (batch.classes.length === initialLength) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    await batch.save();
+
+    res.json({ message: "Class deleted successfully", classes: batch.classes });
+  } catch (err) {
+    console.error("Error deleting class:", err.message);
+    res.status(500).json({ message: "Error deleting class", error: err.message });
+  }
+};
+
 
 
 export const getTeacherStudents = async (req, res) => {

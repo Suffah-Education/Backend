@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/protect.js'; // Path assumed
-import { getAllBatchesForAdmin,getPublicBatch, createBatch, gettAlBatches, getTeacherBatches, getSingleBatch, sendBatchMessage, updateBatch, addClassToBatch, deleteBatch, getTeacherStudents, getMyEnrolledBatches, completeBatch } from '../controllers/batch.controller.js';
+import { getAllBatchesForAdmin, getPublicBatch, createBatch, gettAlBatches, getTeacherBatches, getSingleBatch, sendBatchMessage, updateBatch, addClassToBatch, deleteBatch, getTeacherStudents, getMyEnrolledBatches, completeBatch, deleteClassFromBatch } from '../controllers/batch.controller.js';
 import { checkBatchAccess } from '../middleware/checkBatchAccess.js';
 
 const router = express.Router();
@@ -18,6 +18,7 @@ router.get('/:id', protect, checkBatchAccess, getSingleBatch);
 router.post('/:id/message', protect, sendBatchMessage);
 router.put('/:id', protect, updateBatch);
 router.post('/:id/class', protect, addClassToBatch);
+router.delete('/:id/class/:classId', protect, deleteClassFromBatch);
 router.delete('/:id', protect, deleteBatch);
 
 // Public route for all batches
