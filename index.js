@@ -12,12 +12,21 @@ import cookieParser from 'cookie-parser';
 import adminroute from './routes/admin.route.js'
 import cron from 'node-cron';
 import Subscription from './models/subscription.model.js';
+import timeout from 'express-timeout-handler';
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+app.use(timeout.handler({
+  timeout: 30000,
+  onTimeout: function (req, res) {
+    res.status(503).json({ message: 'Service unavailable. Please try again.' });
+  }
+}));
+
 app.use(cookieParser())
 
 // CORS: allow a list of origins. You can set `FRONTEND_URLS` in .env as a comma-separated list for production
@@ -39,11 +48,11 @@ if (process.env.NODE_ENV === 'production') {
 
 // Basic security + performance middlewares
 app.use(helmet());
-// const apiLimiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP
-// });
-// app.use(apiLimiter);
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 1000, // limit each IP
+});
+app.use(apiLimiter);
 app.use(compression());
 
 

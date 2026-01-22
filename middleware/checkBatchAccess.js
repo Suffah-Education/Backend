@@ -6,30 +6,30 @@ export const checkBatchAccess = async (req, res, next) => {
         const batchId = req.params.id;
         const userId = req.user._id;
 
-        console.log("🔍 checkBatchAccess - batchId:", batchId, "userId:", userId, "role:", req.user.role);
+
 
         const batch = await Batch.findById(batchId);
         if (!batch) {
-            console.log("❌ Batch not found:", batchId);
+
             return res.status(404).json({ message: "Batch not found" });
         }
 
-        console.log("✅ Batch found:", batch.name);
+
 
         // ✅ Teacher & Admin free access
         if (req.user.role === "teacher" || req.user.role === "admin") {
-            console.log("✅ Teacher/Admin access granted");
+
             req.isEnrolled = true;
             return next();
         }
 
-        console.log("🔍 Looking for subscription...");
+
         const subscription = await Subscription.findOne({
             student: userId,
             batch: batchId
         });
 
-        console.log("📋 Subscription found:", subscription ? "YES" : "NO");
+
 
 
         // 🔴 If subscription EXISTS → check expiry
